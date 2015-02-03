@@ -31,6 +31,10 @@ def add_task(task):
 	query_db("insert into tasks(category,priority,description) values(?,?,?)",task, one=True)
 	get_conn().commit();
 	
+def remove_task(rowid):
+	query_db("delete from tasks where rowid=?",rowid, one=True)
+	get_conn().commit();
+
 def cols():
 	return ["category","priority","description"]
 
@@ -38,9 +42,15 @@ def cols():
 def hello_world():
     return 'Hello, World!'
 
+#idealy use ajax and use delete...
+@app.route('/tasks/delete',methods=["POST"])
+def delete():
+	rowid = request.form['id']	
+	remove_task(rowid)
+	return redirect(url_for('tasks'))
+
 @app.route('/tasks',methods=["GET","POST"])
 def tasks(name=None):
-		#post
 	if request.method == "POST":
 		form = request.form
 		try: 
@@ -56,7 +66,7 @@ def tasks(name=None):
 
 	#get 
 	elif request.method == "GET":
-		tasks = query_db("select * from tasks order by priority DESC");
+		tasks = query_db("select rowid,* from tasks order by priority DESC");
 		return render_template('main.html', name=name, cols=cols(),tasks=tasks)
 
 '''@app.route('/task1',methods=["GET","POST"])
