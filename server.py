@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 
 import sqlite3
-from flask import Flask,render_template, redirect,url_for,request
+from flask import Flask,render_template, redirect,url_for,request,session, flash, abort
 #conn = sqlite3.connect('pylab4.db')
 
 app = Flask(__name__)
 conn = None
+
+# default login/password = username/password
+
+# set the secret key.  keep this really secret:
+app.secret_key = 'A0Zr98j/3yX R~XHH!jmN]LWX/,?RT'
 
 def get_conn():
 	global conn
@@ -38,22 +43,46 @@ def remove_task(rowid):
 def cols():
 	return ["category","priority","description"]
 
-@app.route('/')
-def hello_world():
-    return 'Hello, World!'
+def is_logged_in(): 
+	return session['username']
 
 #idealy use ajax and use delete...
 @app.route('/tasks/delete',methods=["POST"])
 def delete():
+	if not is_logged_in():
+		abort(401)
 	rowid = request.form['id']	
 	remove_task(rowid)
 	return redirect(url_for('tasks'))
 
-@app.route('/tasks',methods=["GET","POST"])
+@app.route('/login',methods=["POST"])
+def login():
+	form = request.form
+	username = form['username']
+	password = form['password']
+	user = query_db("select * from user where username = ? and password = ?",(username,password));
+	if user:
+		session['username'] = request.form['username']
+		flash('Login successful',"success")
+	else:
+		flash('Incorrect password or login','danger')
+	return redirect(url_for('tasks'))
+	
+
+@app.route('/logout')
+def logout():
+	session.pop('username', None)
+	flash('Logout successful',"success")
+	return redirect(url_for('tasks'))
+	
+
+@app.route('/',methods=["GET","POST"])
 def tasks(name=None):
 	if request.method == "POST":
+		if not is_logged_in():
+			abort(401)
 		form = request.form
-		try: 
+		try:  
 			formPriority = int(form['priority'])
 			if formPriority > 100 or formPriority < 0:
 				raise Exception
@@ -62,26 +91,13 @@ def tasks(name=None):
 				
 		task = (form['category'],form['priority'],form['description'])	
 		add_task(task)
+		flash('Task added',"success")
 		return redirect(url_for('tasks'))
 
 	#get 
 	elif request.method == "GET":
 		tasks = query_db("select rowid,* from tasks order by priority DESC");
 		return render_template('main.html', name=name, cols=cols(),tasks=tasks)
-
-'''@app.route('/task1',methods=["GET","POST"])
-def task():
-	#post
-	if request.method == "POST":
-		category = request.form['category']
-		tasks.append({'category': category})
-		return redirect(url_for('task'))
-
-	#get 
-	elif request.method == "GET":
-		cols = ["category","priority","description"]
-		return render_template('main.html',cols=cols())
-'''		
 
 if __name__ == "__main__":
 	app.debug = True
