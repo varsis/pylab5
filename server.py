@@ -55,6 +55,7 @@ def delete():
 	remove_task(rowid)
 	return redirect(url_for('tasks'))
 
+# log the user in. Redirect to home
 @app.route('/login',methods=["POST"])
 def login():
 	form = request.form
@@ -69,6 +70,7 @@ def login():
 	return redirect(url_for('tasks'))
 	
 
+#remove the sessions
 @app.route('/logout')
 def logout():
 	session.pop('username', None)
@@ -76,6 +78,7 @@ def logout():
 	return redirect(url_for('tasks'))
 	
 
+#main tasks
 @app.route('/',methods=["GET","POST"])
 def tasks(name=None):
 	if request.method == "POST":
